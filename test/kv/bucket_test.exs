@@ -4,7 +4,7 @@ defmodule KV.BucketTest do
   @milk "milk"
 
   setup do
-    {:ok, bucket} = KV.Bucket.start_link([])
+    bucket = start_supervised!(KV.Bucket)
     %{bucket: bucket}
   end
 
