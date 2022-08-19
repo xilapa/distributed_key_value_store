@@ -1,7 +1,7 @@
 defmodule KV.Bucket do
   use Agent
 
-  @type t() :: %{}
+  @type t() :: pid() | {atom(), node()} | atom() | {:global, term()} | {:via, module(), term()}
   @type key() :: String.t()
 
   @doc """
