@@ -4,9 +4,10 @@ defmodule KV.RegistryTest do
   @shopping "shopping"
   @milk "milk"
 
-  setup do
-    registry = start_supervised!(KV.Registry)
-    %{registry: registry}
+  setup context do
+    nome = context[:test]
+    _ = start_supervised!({KV.Registry, name: nome})
+    %{registry: nome}
   end
 
   test "spawn buckets", %{registry: registry} do
@@ -24,6 +25,10 @@ defmodule KV.RegistryTest do
     assert {:ok, bucket} = KV.Registry.lookup(registry, @shopping)
 
     Agent.stop(bucket)
+
+    # Do a call to ensure the registry processed the DOWN message
+    _ = KV.Registry.create(registry, "bogus")
+
     assert KV.Registry.lookup(registry, @shopping) == :error
   end
 
@@ -32,6 +37,9 @@ defmodule KV.RegistryTest do
     assert {:ok, bucket} = KV.Registry.lookup(registry, @shopping)
 
     Agent.stop(bucket, :shutdown)
+
+    # Do a call to ensure the registry processed the DOWN message
+    _ = KV.Registry.create(registry, "bogus")
     assert KV.Registry.lookup(registry, @shopping) == :error
   end
 end

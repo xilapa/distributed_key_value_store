@@ -10,7 +10,8 @@ defmodule KV.Registry do
   """
   @spec start_link([{atom(), any()}]) :: {:ok, pid()} | {:error, {:already_started, pid()}} | {:error, any()}
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, :ok, opts)
+    registry_server_name = Keyword.fetch!(opts, :name)
+    GenServer.start_link(__MODULE__, registry_server_name, opts)
   end
 
   @doc """
@@ -18,7 +19,10 @@ defmodule KV.Registry do
   """
   @spec lookup(KV.Registry.t(), String.t()) :: {:ok, any()} | :error
   def lookup(registry_server, name) do
-    GenServer.call(registry_server, {:lookup, name})
+    case :ets.lookup(registry_server, name) do
+      [{^name, pid}] -> {:ok, pid}
+      [] -> :error
+    end
   end
 
   @doc """
@@ -26,40 +30,35 @@ defmodule KV.Registry do
   """
   @spec create(KV.Registry.t(), String.t()) :: :ok
   def create(registry_server, name) do
-    GenServer.cast(registry_server, {:create, name})
+    GenServer.call(registry_server, {:create, name})
   end
 
   # GenServer Callbacks
   @impl GenServer
-  def init(:ok) do
-    names = %{} # correlates bucket names and pids
+  def init(registry_server_name) do
+    names = :ets.new(registry_server_name,[:named_table, read_concurrency: true]) # correlates bucket names and pids
     refs = %{} # correlates refs and bucket names
     {:ok, {names, refs}}
   end
 
   @impl GenServer
-  def handle_call({:lookup, name}, _from, state) do
-    {names, _} = state
-    {:reply, Map.fetch(names, name), state}
-  end
-
-  @impl GenServer
-  def handle_cast({:create, name}, {names, refs}) do
-    if Map.has_key?(names, name) do
-      {:noreply, {names, refs}}
-    else
-      {:ok, bucket} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.Bucket)
-      ref = Process.monitor(bucket)
-      refs = Map.put(refs, ref, name)
-      names = Map.put(names, name, bucket)
-      {:noreply, {names, refs}}
+  def handle_call({:create, name}, _from, {names, refs}) do
+    case lookup(names, name) do
+      {:ok, bucket} ->
+        {:reply, bucket, {names, refs}}
+      :error ->
+        {:ok, bucket} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.Bucket)
+        ref = Process.monitor(bucket)
+        refs = Map.put(refs, ref, name)
+        :ets.insert(names, {name, bucket})
+        {:reply, name, {names, refs}}
     end
   end
 
   @impl GenServer
   def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs}) do
     {name, refs} = Map.pop(refs, ref)
-    names = Map.delete(names, name)
+    :ets.delete(names, name)
     {:noreply, {names, refs}}
   end
 
