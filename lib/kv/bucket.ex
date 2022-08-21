@@ -1,5 +1,5 @@
 defmodule KV.Bucket do
-  use Agent
+  use Agent, restart: :temporary
 
   @type t() :: pid() | {atom(), node()} | atom() | {:global, term()} | {:via, module(), term()}
   @type key() :: String.t()
