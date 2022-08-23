@@ -41,7 +41,35 @@ defmodule KVServer.Command do
   @doc """
   Runs the give `command`
   """
-  def run(command) do
-    {:ok, "OK!\r\n"}
+  def run(command)
+
+  def run({:create, bucket}) do
+    KV.Registry.create(KV.Registry, bucket)
+    {:ok, "OK\r\n"}
+  end
+
+  def run({:get, bucket, key}) do
+    lookup(bucket, &({:ok, "#{KV.Bucket.get(&1,key)}\r\n"}))
+  end
+
+  def run({:put, bucket, key, value}) do
+    lookup(bucket, fn pid ->
+      KV.Bucket.put(pid, key, value)
+      {:ok, "OK\r\n"}
+    end)
+  end
+
+  def run({:delete, bucket, key}) do
+    lookup(bucket, fn pid ->
+      KV.Bucket.delete(pid, key)
+      {:ok, "OK\r\n"}
+    end)
+  end
+
+  defp lookup(bucket, callback) do
+    case KV.Registry.lookup(KV.Registry, bucket) do
+      {:ok, bucket_pid} -> callback.(bucket_pid)
+      :error -> {:error, :not_found}
+    end
   end
 end
