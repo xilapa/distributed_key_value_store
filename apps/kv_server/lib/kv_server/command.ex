@@ -49,7 +49,7 @@ defmodule KVServer.Command do
   end
 
   def run({:get, bucket, key}) do
-    lookup(bucket, &({:ok, "#{KV.Bucket.get(&1,key)}\r\n"}))
+    lookup(bucket, &({:ok, "#{KV.Bucket.get(&1,key)}\r\nOK\r\n"}))
   end
 
   def run({:put, bucket, key, value}) do
