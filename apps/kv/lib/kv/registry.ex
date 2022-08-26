@@ -51,7 +51,7 @@ defmodule KV.Registry do
         ref = Process.monitor(bucket)
         refs = Map.put(refs, ref, name)
         :ets.insert(names, {name, bucket})
-        {:reply, name, {names, refs}}
+        {:reply, bucket, {names, refs}}
     end
   end
 
