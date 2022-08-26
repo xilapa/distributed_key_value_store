@@ -6,7 +6,13 @@ defmodule DistributedKeyValueStore.MixProject do
       apps_path: "apps",
       version: "0.1.0",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      releases: [
+        monolithe: [
+          version: "0.0.1",
+          applications: [kv_server: :permanent, kv: :permanent]
+        ]
+      ]
     ]
   end
 
