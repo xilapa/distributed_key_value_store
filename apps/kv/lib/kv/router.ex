@@ -20,10 +20,9 @@ defmodule KV.Router do
     end
   end
 
-
+  @spec routing_table() :: [{[integer()], atom()}]
   defp routing_table do
-    # Replace computer-name with your local machine name
-    [{?a..?m, :"foo@computer-name"}, {?n..?z, :"bar@computer-name"}]
+    Application.fetch_env!(:kv, :routing_table)
   end
 
   defp no_entry_error(bucket) do
